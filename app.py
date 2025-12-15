@@ -35,12 +35,24 @@ app.add_middleware(
 )
 
 # Import generation engine
+generator = None
+init_error = None
+
 try:
     from src.generation import PoemGenerator, GenerationSpec
     generator = PoemGenerator()
     logger.info("PoemGenerator initialized successfully")
+except ImportError as e:
+    init_error = f"Missing dependencies: {e}. Some ML features may be disabled."
+    logger.warning(init_error)
+    # Try to import at least the spec for validation
+    try:
+        from src.generation import GenerationSpec
+    except ImportError:
+        pass
 except Exception as e:
-    logger.error(f"Failed to initialize PoemGenerator: {e}")
+    init_error = f"Failed to initialize PoemGenerator: {e}"
+    logger.error(init_error)
     generator = None
 
 
@@ -102,14 +114,17 @@ async def root():
 @app.get("/health")
 async def health():
     """Health check endpoint for Railway."""
-    if generator is None:
-        raise HTTPException(status_code=503, detail="PoemGenerator not initialized")
-
-    return {
-        "status": "healthy",
-        "generator": "initialized",
+    status = {
+        "status": "healthy" if generator else "limited",
+        "generator": "initialized" if generator else "not initialized",
         "forms_available": len(generator.list_forms()) if generator else 0
     }
+
+    if init_error:
+        status["init_error"] = init_error
+        status["note"] = "API is running but poem generation may be limited due to missing dependencies"
+
+    return status
 
 
 @app.post("/generate", response_model=GenerateResponse)

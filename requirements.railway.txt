@@ -1,0 +1,45 @@
+# Railway-optimized minimal dependencies
+# This file prioritizes small image size for Railway's 4GB limit
+
+# Web framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+gunicorn==21.2.0
+pydantic==2.5.0
+
+# Core dependencies
+requests==2.31.0
+beautifulsoup4==4.12.2
+lxml==4.9.3
+
+# Lightweight data processing
+numpy==1.24.3
+
+# Database
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9
+
+# Basic NLP
+nltk==3.8.1
+
+# Phonetics (lightweight)
+pronouncing==0.2.0
+
+# Utilities
+python-dotenv==1.0.0
+tqdm==4.66.1
+pyyaml==6.0.1
+
+# Network analysis
+networkx==3.1
+
+# API clients
+wordnik-py3==2.1.0
+
+# NOTE: Heavy ML dependencies (torch, transformers, sentence-transformers)
+# are commented out to reduce image size. The API will work but semantic
+# features will be limited. Uncomment if using Railway Pro with higher limits:
+#
+# --extra-index-url https://download.pytorch.org/whl/cpu
+# torch==2.0.1
+# sentence-transformers==2.2.2

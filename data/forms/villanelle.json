@@ -1,0 +1,67 @@
+{
+  "form_id": "villanelle",
+  "name": "Villanelle",
+  "description": "19-line poem with refrains, ABA rhyme scheme",
+  "total_lines": 19,
+  "stanza_specs": [
+    {
+      "stanza_id": 1,
+      "lines": 3,
+      "rhyme_pattern": ["A1", "B", "A2"],
+      "meter_pattern": "iambic_pentameter"
+    },
+    {
+      "stanza_id": 2,
+      "lines": 3,
+      "rhyme_pattern": ["A", "B", "A1"],
+      "meter_pattern": "iambic_pentameter"
+    },
+    {
+      "stanza_id": 3,
+      "lines": 3,
+      "rhyme_pattern": ["A", "B", "A2"],
+      "meter_pattern": "iambic_pentameter"
+    },
+    {
+      "stanza_id": 4,
+      "lines": 3,
+      "rhyme_pattern": ["A", "B", "A1"],
+      "meter_pattern": "iambic_pentameter"
+    },
+    {
+      "stanza_id": 5,
+      "lines": 3,
+      "rhyme_pattern": ["A", "B", "A2"],
+      "meter_pattern": "iambic_pentameter"
+    },
+    {
+      "stanza_id": 6,
+      "lines": 4,
+      "rhyme_pattern": ["A", "B", "A1", "A2"],
+      "meter_pattern": "iambic_pentameter"
+    }
+  ],
+  "rhyme_pattern": "ABA ABA ABA ABA ABA ABAA",
+  "meter_pattern": "iambic_pentameter",
+  "special_rules": {
+    "refrains": {
+      "A1": {
+        "line_number": 1,
+        "repetitions": [6, 12, 18],
+        "description": "First refrain line repeats at lines 6, 12, 18"
+      },
+      "A2": {
+        "line_number": 3,
+        "repetitions": [9, 15, 19],
+        "description": "Second refrain line repeats at lines 9, 15, 19"
+      }
+    },
+    "syllables_per_line": 10,
+    "feet_per_line": 5,
+    "foot_pattern": "01"
+  },
+  "device_profile_defaults": {
+    "enjambment_rate": 0.2,
+    "parallelism_rate": 0.4
+  }
+}

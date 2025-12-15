@@ -1,0 +1,41 @@
+# Core dependencies
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+
+# Data processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Database
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0
+
+# NLP and embeddings
+nltk>=3.8.0
+sentence-transformers>=2.2.0
+transformers>=4.30.0
+torch>=2.0.0
+
+# Phonetics
+pronouncing>=0.2.0
+epitran>=1.24
+
+# Scientific computing
+scipy>=1.10.0
+scikit-learn>=1.3.0
+
+# Network analysis (for concept graph)
+networkx>=3.1
+
+# API clients
+wordnik-py3>=2.0.0
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+
+# Utilities
+python-dotenv>=1.0.0
+tqdm>=4.65.0
+pyyaml>=6.0

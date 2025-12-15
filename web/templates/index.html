@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WordRare - Rare Poetry Generator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎭 WordRare</h1>
+            <p class="tagline">Generate rare poetry with uncommon words</p>
+        </header>
+
+        <main>
+            <!-- Configuration Panel -->
+            <section class="config-panel">
+                <h2>Configuration</h2>
+
+                <div class="form-group">
+                    <label for="form-select">Poetic Form</label>
+                    <select id="form-select">
+                        <option value="haiku">Haiku (3 lines)</option>
+                        <option value="sonnet">Sonnet (14 lines)</option>
+                        <option value="villanelle">Villanelle (19 lines)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="theme-input">Theme</label>
+                    <input type="text" id="theme-input" placeholder="e.g., nature, love, time" value="nature">
+                </div>
+
+                <div class="form-group">
+                    <label for="affect-select">Affect Profile</label>
+                    <select id="affect-select">
+                        <option value="">Default</option>
+                        <option value="melancholic">Melancholic</option>
+                        <option value="joyful">Joyful</option>
+                        <option value="mysterious">Mysterious</option>
+                        <option value="romantic">Romantic</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Rarity Range: <span id="rarity-value">0.30 - 0.90</span></label>
+                    <div class="slider-group">
+                        <input type="range" id="min-rarity" min="0" max="1" step="0.05" value="0.3">
+                        <input type="range" id="max-rarity" min="0" max="1" step="0.05" value="0.9">
+                    </div>
+                    <div class="slider-labels">
+                        <span>Common</span>
+                        <span>Rare</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="temperature">Temperature: <span id="temperature-value">0.70</span></label>
+                    <input type="range" id="temperature" min="0" max="1" step="0.05" value="0.7">
+                    <div class="slider-labels">
+                        <span>Deterministic</span>
+                        <span>Random</span>
+                    </div>
+                </div>
+
+                <div class="preset-buttons">
+                    <button class="preset-btn" data-preset="melancholic_nature">Melancholic Nature</button>
+                    <button class="preset-btn" data-preset="joyful_simple">Joyful Simple</button>
+                    <button class="preset-btn" data-preset="mysterious_archaic">Mysterious Archaic</button>
+                </div>
+
+                <button id="generate-btn" class="primary-btn">Generate Poem</button>
+            </section>
+
+            <!-- Output Panel -->
+            <section class="output-panel">
+                <h2>Generated Poem</h2>
+                <div id="loading" class="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>Generating poem...</p>
+                </div>
+
+                <div id="poem-display" class="poem-display">
+                    <p class="placeholder">Your generated poem will appear here.</p>
+                </div>
+
+                <div id="metrics-display" class="metrics-display" style="display: none;">
+                    <h3>Quality Metrics</h3>
+                    <div class="metrics-grid">
+                        <div class="metric">
+                            <span class="metric-label">Meter</span>
+                            <div class="metric-bar">
+                                <div class="metric-fill" id="meter-bar"></div>
+                            </div>
+                            <span class="metric-value" id="meter-value">0%</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Rhyme</span>
+                            <div class="metric-bar">
+                                <div class="metric-fill" id="rhyme-bar"></div>
+                            </div>
+                            <span class="metric-value" id="rhyme-value">0%</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Semantic</span>
+                            <div class="metric-bar">
+                                <div class="metric-fill" id="semantic-bar"></div>
+                            </div>
+                            <span class="metric-value" id="semantic-value">0%</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Overall</span>
+                            <div class="metric-bar">
+                                <div class="metric-fill" id="total-bar"></div>
+                            </div>
+                            <span class="metric-value" id="total-value">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-buttons" id="action-buttons" style="display: none;">
+                    <button id="copy-btn" class="secondary-btn">Copy to Clipboard</button>
+                    <button id="new-btn" class="secondary-btn">Generate Another</button>
+                </div>
+            </section>
+
+            <!-- Dictionary Explorer -->
+            <section class="dictionary-panel">
+                <h2>Dictionary Explorer</h2>
+                <div class="search-controls">
+                    <input type="text" id="word-search" placeholder="Search by part of speech...">
+                    <select id="pos-filter">
+                        <option value="">All Parts of Speech</option>
+                        <option value="noun">Noun</option>
+                        <option value="verb">Verb</option>
+                        <option value="adjective">Adjective</option>
+                        <option value="adverb">Adverb</option>
+                    </select>
+                    <button id="search-btn" class="secondary-btn">Search</button>
+                    <button id="random-btn" class="secondary-btn">Random Word</button>
+                </div>
+                <div id="word-results" class="word-results">
+                    <p class="placeholder">Search for rare words or get a random one.</p>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>WordRare - A rare poetry generation system | Built with constraint satisfaction and semantic intelligence</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

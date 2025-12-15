@@ -1,0 +1,26 @@
+{
+  "form_id": "haiku",
+  "name": "Haiku",
+  "description": "3-line poem with 5-7-5 syllable pattern, typically about nature",
+  "total_lines": 3,
+  "stanza_specs": [
+    {
+      "stanza_id": 1,
+      "lines": 3,
+      "rhyme_pattern": [null, null, null],
+      "meter_pattern": "syllabic"
+    }
+  ],
+  "rhyme_pattern": "none",
+  "meter_pattern": "syllabic",
+  "special_rules": {
+    "syllable_pattern": [5, 7, 5],
+    "seasonal_reference": true,
+    "cutting_word": true,
+    "no_rhyme": true
+  },
+  "device_profile_defaults": {
+    "enjambment_rate": 0.0,
+    "imagery_tags": ["visual", "auditory"]
+  }
+}

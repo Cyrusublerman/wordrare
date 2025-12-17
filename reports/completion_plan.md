@@ -355,10 +355,10 @@ Phase 5 (Docs) - Final phase:
 - [ ] 1.3 Semantic Tag Assignment
 
 ### Phase 2: Metrics
-- [ ] 2.1 Rhyme Stability Metric
+- [x] 2.1 Rhyme Stability Metric ✅ **COMPLETED 2025-12-17**
 - [ ] 2.2 Motif Coherence Metric
-- [ ] 2.3 Technique Metrics
-- [ ] 2.4 Rhyme Divergence
+- [x] 2.3 Technique Metrics ✅ **COMPLETED 2025-12-17**
+- [x] 2.4 Rhyme Divergence ✅ **COMPLETED 2025-12-17**
 - [ ] 2.5 Semantic & Affect Constraints
 
 ### Phase 3: Generation
@@ -415,3 +415,49 @@ This plan provides incremental progress with clear milestones, testable outcomes
 1. Phase 2.1: Rhyme Stability Metric (LOW complexity, independent)
 2. Phase 2.3: Technique Metrics (LOW complexity, independent)
 3. Phase 1.3: Semantic Tag Assignment (MEDIUM complexity, unlocks multiple Phase 2 tasks)
+
+---
+
+### 2025-12-17: Phases 2.1, 2.3, 2.4 - Metrics Implementation ✅
+
+**Completed:**
+- **Phase 2.1: Rhyme Stability Metric**
+  - Replaced hardcoded 0.8 value with real variance calculation
+  - Tracks rhyme similarity scores for each rhyme group
+  - Computes variance within each rhyme class
+  - Formula: `stability = max(0, 1.0 - avg_variance)`
+  - Handles edge cases (single pairs, no rhymes, etc.)
+
+- **Phase 2.3: Technique Metrics**
+  - Replaced placeholder values for density, regularization, and variation
+  - **Density**: Tracks boolean presence per line (equals intensity for binary detection)
+  - **Regularization**: Computes `1 - variance(presence_pattern)` for consistency measurement
+  - **Variation**: Implements Jaccard distance between technique occurrence sets
+  - All three techniques (alliteration, assonance, consonance) now have real metrics
+
+- **Phase 2.4: Rhyme Divergence (Layering)**
+  - Replaced hardcoded 0.6 value with computed divergence
+  - Divergence = average of variation scores across active techniques
+  - Measures how well-separated different sound techniques are
+  - High divergence indicates distinct, non-overlapping patterns
+
+**Files Modified:**
+- `src/metrics/poem_metrics.py`:
+  - Updated `analyze_rhyme()` to compute real stability (lines 308-354)
+  - Updated `analyze_techniques()` with density, regularization, variation calculations (lines 406-477)
+  - Updated `analyze_layering()` with real divergence calculation (lines 479-498)
+
+**Results:**
+- All placeholder metrics for rhyme and techniques are now real computations
+- Metrics system can now properly evaluate poem quality
+- More accurate ranking and comparison of generated poems
+- Variance-based stability and regularization provide meaningful quality signals
+
+**Remaining Phase 2 Tasks:**
+1. Phase 2.2: Motif Coherence Metric (MEDIUM - requires embeddings)
+2. Phase 2.5: Semantic & Affect Constraints (MEDIUM - requires Phase 1.3)
+
+**Next Phase Candidates:**
+1. Phase 1.3: Semantic Tag Assignment (unlocks 2.2 and 2.5)
+2. Phase 4.1: Find-Rhymes CLI (LOW complexity, independent)
+3. Phase 4.2: UI Module Initialization (LOW complexity, independent)

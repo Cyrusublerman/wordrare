@@ -305,26 +305,51 @@ class MetricsAnalyzer:
         actual_classes = len(rhyme_groups)
         metrics.economy = 1.0 - (actual_classes / max_classes) if max_classes > 0 else 0
 
-        # Compute strictness (check rhyme quality)
+        # Compute strictness (check rhyme quality) and collect similarity scores
         perfect_count = 0
         total_pairs = 0
+        group_similarities = {}  # Track similarities per rhyme class
 
-        for group in rhyme_groups.values():
+        for symbol, group in rhyme_groups.items():
             if len(group) < 2:
                 continue
+
+            group_similarities[symbol] = []
 
             for i in range(len(group)):
                 for j in range(i + 1, len(group)):
                     match = self.sound_engine.check_rhyme(group[i], group[j])
                     total_pairs += 1
 
-                    if match and match.rhyme_type == 'perfect':
-                        perfect_count += 1
+                    if match:
+                        if match.rhyme_type == 'perfect':
+                            perfect_count += 1
+
+                        # Track similarity score for stability calculation
+                        similarity = getattr(match, 'similarity', 1.0 if match.rhyme_type == 'perfect' else 0.5)
+                        group_similarities[symbol].append(similarity)
 
         metrics.strictness = perfect_count / total_pairs if total_pairs > 0 else 0
 
-        # Stability (placeholder - would check consistency of rhyme class)
-        metrics.stability = 0.8
+        # Stability: consistency of rhyme quality within each class
+        # Compute variance of similarities within each group, then aggregate
+        if group_similarities:
+            group_variances = []
+            for similarities in group_similarities.values():
+                if len(similarities) > 1:
+                    variance = np.var(similarities)
+                    group_variances.append(variance)
+
+            # Stability = 1.0 - average variance (higher variance = less stable)
+            if group_variances:
+                avg_variance = np.mean(group_variances)
+                metrics.stability = max(0.0, 1.0 - avg_variance)
+            else:
+                # Only one pair per group or single-pair groups
+                metrics.stability = 1.0
+        else:
+            # No rhyme groups with multiple members
+            metrics.stability = 0.0
 
         return metrics
 
@@ -389,23 +414,65 @@ class MetricsAnalyzer:
         if not lines:
             return techniques
 
+        # Track presence per line for each technique
+        technique_presence = {name: [] for name in techniques.keys()}
+
         # Analyze each line for devices
         for line in lines:
             devices = self.sound_engine.analyze_sound_devices(line)
 
             for device_name, present in devices.items():
-                if present and device_name in techniques:
-                    techniques[device_name].intensity += 1
+                if device_name in techniques:
+                    techniques[device_name].intensity += 1 if present else 0
+                    technique_presence[device_name].append(1 if present else 0)
 
-        # Normalize intensity
-        for technique in techniques.values():
-            technique.intensity /= len(lines)
+        num_lines = len(lines)
 
-        # Placeholder values for other metrics
-        for technique in techniques.values():
-            technique.density = technique.intensity * 0.8
-            technique.regularization = 0.6
-            technique.variation = 0.5
+        # Compute metrics for each technique
+        for name, technique in techniques.items():
+            presence = technique_presence[name]
+
+            # Intensity: fraction of lines containing technique
+            technique.intensity = technique.intensity / num_lines
+
+            # Density: same as intensity (average presence per line)
+            # Since we only track boolean presence, density = intensity
+            technique.density = technique.intensity
+
+            # Regularization: 1 - variance of presence pattern
+            # High regularity = low variance in presence pattern
+            if len(presence) > 1:
+                variance = np.var(presence)
+                technique.regularization = max(0.0, 1.0 - variance)
+            else:
+                technique.regularization = 1.0
+
+        # Variation: Jaccard distance between technique occurrence sets
+        # For each technique, compute average distance to other techniques
+        technique_names = list(techniques.keys())
+        for i, name in enumerate(technique_names):
+            distances = []
+            set_a = set([j for j, val in enumerate(technique_presence[name]) if val == 1])
+
+            for j, other_name in enumerate(technique_names):
+                if i != j:
+                    set_b = set([k for k, val in enumerate(technique_presence[other_name]) if val == 1])
+
+                    # Jaccard distance = 1 - Jaccard similarity
+                    if len(set_a) == 0 and len(set_b) == 0:
+                        distance = 0.0  # Both empty
+                    elif len(set_a) == 0 or len(set_b) == 0:
+                        distance = 1.0  # One empty, one not
+                    else:
+                        intersection = len(set_a & set_b)
+                        union = len(set_a | set_b)
+                        jaccard_similarity = intersection / union if union > 0 else 0
+                        distance = 1.0 - jaccard_similarity
+
+                    distances.append(distance)
+
+            # Variation: average distance to other techniques
+            techniques[name].variation = np.mean(distances) if distances else 0.0
 
         return techniques
 
@@ -422,8 +489,11 @@ class MetricsAnalyzer:
 
         metrics.layers = active / total if total > 0 else 0
 
-        # Divergence (placeholder - would compute scheme distances)
-        metrics.divergence = 0.6
+        # Divergence: average of variation scores across all techniques
+        # Variation measures how different each technique's pattern is from others
+        # High divergence means techniques are well-separated (not overlapping)
+        variations = [t.variation for t in techniques.values() if t.intensity > 0.2]
+        metrics.divergence = np.mean(variations) if variations else 0.0
 
         return metrics
 

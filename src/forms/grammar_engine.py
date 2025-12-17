@@ -11,8 +11,89 @@ import random
 import logging
 from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass
+from functools import lru_cache
+import nltk
 
 logger = logging.getLogger(__name__)
+
+# Penn Treebank to WordRare POS tag mapping
+NLTK_TO_WORDRARE_POS = {
+    # Nouns
+    'NN': 'noun',      # Noun, singular
+    'NNS': 'noun',     # Noun, plural
+    'NNP': 'noun',     # Proper noun, singular
+    'NNPS': 'noun',    # Proper noun, plural
+
+    # Verbs
+    'VB': 'verb',      # Verb, base form
+    'VBD': 'verb',     # Verb, past tense
+    'VBG': 'verb',     # Verb, gerund/present participle
+    'VBN': 'verb',     # Verb, past participle
+    'VBP': 'verb',     # Verb, non-3rd person singular present
+    'VBZ': 'verb',     # Verb, 3rd person singular present
+
+    # Adjectives
+    'JJ': 'adjective',   # Adjective
+    'JJR': 'adjective',  # Adjective, comparative
+    'JJS': 'adjective',  # Adjective, superlative
+
+    # Adverbs
+    'RB': 'adverb',    # Adverb
+    'RBR': 'adverb',   # Adverb, comparative
+    'RBS': 'adverb',   # Adverb, superlative
+
+    # Determiners (articles)
+    'DT': 'article',   # Determiner
+
+    # Prepositions
+    'IN': 'preposition',  # Preposition or subordinating conjunction
+    'TO': 'preposition',  # to
+
+    # Pronouns
+    'PRP': 'pronoun',     # Personal pronoun
+    'PRP$': 'pronoun',    # Possessive pronoun
+    'WP': 'pronoun',      # Wh-pronoun
+    'WP$': 'pronoun',     # Possessive wh-pronoun
+
+    # Conjunctions
+    'CC': 'conjunction',  # Coordinating conjunction
+
+    # Other
+    'CD': 'number',       # Cardinal number
+    'MD': 'modal',        # Modal
+    'UH': 'interjection', # Interjection
+    'EX': 'existential',  # Existential there
+    'PDT': 'predeterminer',  # Predeterminer
+    'POS': 'possessive',  # Possessive ending
+    'RP': 'particle',     # Particle
+    'SYM': 'symbol',      # Symbol
+    'WDT': 'determiner',  # Wh-determiner
+    'WRB': 'adverb',      # Wh-adverb
+}
+
+
+@lru_cache(maxsize=1024)
+def get_pos_tags(text: str) -> List[Tuple[str, str, str]]:
+    """
+    Get POS tags for text using NLTK.
+
+    Args:
+        text: Input text to tag
+
+    Returns:
+        List of (word, nltk_tag, wordrare_tag) tuples
+    """
+    # Tokenize and tag with NLTK
+    tokens = nltk.word_tokenize(text.lower())
+    nltk_tags = nltk.pos_tag(tokens)
+
+    # Convert to WordRare categories
+    result = []
+    for word, nltk_tag in nltk_tags:
+        wordrare_tag = NLTK_TO_WORDRARE_POS.get(nltk_tag, 'unknown')
+        result.append((word, nltk_tag, wordrare_tag))
+
+    return result
 
 
 @dataclass
@@ -298,18 +379,34 @@ class GrammarEngine:
             expected_template: Expected template ID
 
         Returns:
-            Dictionary with analysis results
+            Dictionary with analysis results including:
+                - word_count: Number of words
+                - expected_template: Expected template ID (if provided)
+                - matches_template: Whether line matches expected template
+                - pos_sequence: List of (word, nltk_tag, wordrare_tag) tuples
+                - wordrare_pos_only: List of WordRare POS tags only
         """
-        # This would require POS tagging
-        # For now, return placeholder
+        # Get POS tags for the line
+        pos_tags = get_pos_tags(line)
 
-        words = line.split()
+        # Extract just the WordRare tags for sequence
+        wordrare_sequence = [tag[2] for tag in pos_tags]
+
+        # Check if matches expected template
+        matches_template = None
+        if expected_template:
+            template = self.get_template(expected_template)
+            if template:
+                expected_sequence = template.get_pos_sequence()
+                # Check if sequences match
+                matches_template = (wordrare_sequence == expected_sequence)
 
         return {
-            'word_count': len(words),
+            'word_count': len(pos_tags),
             'expected_template': expected_template,
-            'matches_template': None,  # Would need POS tagger
-            'pos_sequence': None  # Would need POS tagger
+            'matches_template': matches_template,
+            'pos_sequence': pos_tags,  # Full tuples: (word, nltk_tag, wordrare_tag)
+            'wordrare_pos_only': wordrare_sequence  # Just WordRare tags
         }
 
     def suggest_template_for_meter(self, meter_pattern: str) -> List[str]:

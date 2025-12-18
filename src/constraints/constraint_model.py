@@ -8,6 +8,9 @@ import logging
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from enum import Enum
+import numpy as np
+
+from ..database import WordRecord, Semantics, get_session
 
 logger = logging.getLogger(__name__)
 
@@ -119,13 +122,117 @@ class ConstraintModel:
 
         return weighted_sum / total_weight
 
+    def _evaluate_semantic_constraint(self, line: str, semantic_palette: Dict) -> float:
+        """
+        Evaluate semantic coherence with theme.
+
+        Args:
+            line: Line text
+            semantic_palette: Semantic palette with theme concepts
+
+        Returns:
+            Score (0.0-1.0) indicating semantic alignment
+        """
+        if not semantic_palette or 'word_pools' not in semantic_palette:
+            return 0.5  # Neutral score if no palette
+
+        # Extract words from line
+        words = [w.strip('.,!?;:\'\"').lower() for w in line.split()]
+        if not words:
+            return 0.5
+
+        # Get embeddings for line words
+        line_embeddings = []
+        with get_session() as session:
+            for word in words:
+                sem = session.query(Semantics).filter_by(lemma=word).first()
+                if sem and sem.embedding:
+                    line_embeddings.append(np.array(sem.embedding))
+
+        if not line_embeddings:
+            return 0.5  # No embeddings available
+
+        # Get theme words from palette word pools
+        theme_words = []
+        for motif_words in semantic_palette.get('word_pools', {}).values():
+            theme_words.extend(motif_words[:10])  # Top 10 from each pool
+
+        if not theme_words:
+            return 0.5
+
+        # Get embeddings for theme words
+        theme_embeddings = []
+        with get_session() as session:
+            for word in theme_words[:30]:  # Limit to 30 theme words
+                sem = session.query(Semantics).filter_by(lemma=word).first()
+                if sem and sem.embedding:
+                    theme_embeddings.append(np.array(sem.embedding))
+
+        if not theme_embeddings:
+            return 0.5
+
+        # Compute average theme centroid
+        theme_centroid = np.mean(theme_embeddings, axis=0)
+
+        # Compute similarity of each line word to theme centroid
+        similarities = []
+        for line_emb in line_embeddings:
+            dot_product = np.dot(line_emb, theme_centroid)
+            norm_product = np.linalg.norm(line_emb) * np.linalg.norm(theme_centroid)
+
+            if norm_product > 0:
+                similarity = dot_product / norm_product
+                similarities.append(max(0.0, similarity))
+
+        # Return average similarity
+        return np.mean(similarities) if similarities else 0.5
+
+    def _evaluate_affect_constraint(self, line: str, affect_profile: str) -> float:
+        """
+        Evaluate affect alignment with target profile.
+
+        Args:
+            line: Line text
+            affect_profile: Target affect (e.g., "melancholic", "joyful")
+
+        Returns:
+            Score (0.0-1.0) indicating affect alignment
+        """
+        if not affect_profile:
+            return 1.0  # No constraint if no target affect
+
+        # Extract words from line
+        words = [w.strip('.,!?;:\'\"').lower() for w in line.split()]
+        if not words:
+            return 0.5
+
+        # Get affect tags for each word
+        matching_count = 0
+        total_count = 0
+
+        with get_session() as session:
+            for word in words:
+                sem = session.query(Semantics).filter_by(lemma=word).first()
+                if sem and sem.affect_tags:
+                    total_count += 1
+                    # Check if any affect tag matches the target profile
+                    if affect_profile in sem.affect_tags:
+                        matching_count += 1
+
+        # If no words have affect tags, return neutral score
+        if total_count == 0:
+            return 0.5
+
+        # Return proportion of words matching target affect
+        return matching_count / total_count
+
     def evaluate_line(self, line: str, target_spec: Dict) -> Dict[str, Constraint]:
         """
         Evaluate all constraints for a line.
 
         Args:
             line: Line text
-            target_spec: Target specifications (rhyme, meter, etc.)
+            target_spec: Target specifications (rhyme, meter, semantic_palette, affect_profile, etc.)
 
         Returns:
             Dictionary of constraint name -> Constraint
@@ -154,12 +261,25 @@ class ConstraintModel:
                 rhyme_score = match.similarity if match else 0.0
                 constraints['rhyme'] = self.create_constraint('rhyme', rhyme_score)
 
-        # Semantic constraint (placeholder)
-        # In full implementation, would check semantic coherence
-        constraints['semantics'] = self.create_constraint('semantics', 0.8)
+        # Semantic constraint
+        if 'semantic_palette' in target_spec:
+            semantic_score = self._evaluate_semantic_constraint(
+                line, target_spec['semantic_palette']
+            )
+            constraints['semantics'] = self.create_constraint('semantics', semantic_score)
+        else:
+            # Default neutral score if no palette
+            constraints['semantics'] = self.create_constraint('semantics', 0.5)
 
-        # Affect constraint (placeholder)
-        constraints['affect'] = self.create_constraint('affect', 0.7)
+        # Affect constraint
+        if 'affect_profile' in target_spec:
+            affect_score = self._evaluate_affect_constraint(
+                line, target_spec['affect_profile']
+            )
+            constraints['affect'] = self.create_constraint('affect', affect_score)
+        else:
+            # Default high score if no affect requirement
+            constraints['affect'] = self.create_constraint('affect', 1.0)
 
         return constraints
 

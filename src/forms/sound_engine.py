@@ -150,6 +150,66 @@ class SoundEngine:
         # For now, return None (no partial rhyme detected)
         return None
 
+    def find_rhymes_for_word(self, word: str, limit: int = 20,
+                            min_rarity: float = 0.0,
+                            max_rarity: float = 1.0,
+                            rhyme_type: str = 'any') -> List[Tuple[str, RhymeMatch]]:
+        """
+        Find rhyming words from the database.
+
+        Args:
+            word: Target word to find rhymes for
+            limit: Maximum number of rhymes to return
+            min_rarity: Minimum rarity threshold
+            max_rarity: Maximum rarity threshold
+            rhyme_type: Type of rhyme to find ('perfect', 'slant', 'any')
+
+        Returns:
+            List of (word, RhymeMatch) tuples sorted by similarity
+        """
+        rhyme_key = self.get_rhyme_key(word)
+
+        if not rhyme_key:
+            logger.warning(f"No rhyme key found for '{word}'")
+            return []
+
+        matches = []
+
+        with get_session() as session:
+            # Query WordRecord for words with rhyme keys
+            query = session.query(WordRecord).filter(
+                WordRecord.rhyme_key.isnot(None),
+                WordRecord.lemma != word
+            )
+
+            # Apply rarity filters if provided
+            if min_rarity > 0:
+                query = query.filter(WordRecord.rarity_score >= min_rarity)
+            if max_rarity < 1.0:
+                query = query.filter(WordRecord.rarity_score <= max_rarity)
+
+            # Limit to avoid processing too many words
+            candidates = query.limit(1000).all()
+
+            for candidate in candidates:
+                match = self.check_rhyme(word, candidate.lemma)
+
+                if match:
+                    if rhyme_type == 'any':
+                        matches.append((candidate.lemma, match))
+                    elif match.rhyme_type == rhyme_type:
+                        matches.append((candidate.lemma, match))
+
+                # Stop early if we have enough good matches
+                if len(matches) >= limit * 2:
+                    break
+
+        # Sort by similarity
+        matches.sort(key=lambda m: m[1].similarity, reverse=True)
+
+        # Return top matches
+        return matches[:limit]
+
     def find_rhymes(self, word: str, candidate_words: List[str],
                    rhyme_type: str = 'any') -> List[RhymeMatch]:
         """
@@ -401,8 +461,18 @@ def main():
             print(f"\n'{word1}' and '{word2}' do not rhyme")
 
     elif args.find_rhymes:
-        # This would need a word list - placeholder
-        print("Find-rhymes requires a word list (not implemented in CLI)")
+        word = args.find_rhymes
+        rhymes = engine.find_rhymes_for_word(word, limit=20)
+
+        if rhymes:
+            print(f"\nRhymes for '{word}':")
+            print(f"{'Word':<20} {'Type':<12} {'Similarity':>10}")
+            print("-" * 45)
+
+            for rhyme_word, match in rhymes:
+                print(f"{rhyme_word:<20} {match.rhyme_type:<12} {match.similarity:>10.3f}")
+        else:
+            print(f"\nNo rhymes found for '{word}'")
 
     elif args.alliteration:
         has_alliteration = engine.check_alliteration(args.alliteration)

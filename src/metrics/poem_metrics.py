@@ -398,8 +398,36 @@ class MetricsAnalyzer:
         else:
             metrics.theme_coherence = 0.5
 
-        # Motif coherence (placeholder - would use embeddings)
-        metrics.motif_coherence = 0.7
+        # Motif coherence: measure semantic clustering using embeddings
+        embeddings = []
+        for record in word_records:
+            if record.embedding:
+                # Embedding is stored as JSON (list)
+                embeddings.append(np.array(record.embedding))
+
+        if len(embeddings) >= 2:
+            # Stack embeddings into matrix
+            embedding_matrix = np.vstack(embeddings)
+
+            # Compute centroid (semantic center of the poem)
+            centroid = np.mean(embedding_matrix, axis=0)
+
+            # Calculate cosine similarity of each word to centroid
+            similarities = []
+            for emb in embeddings:
+                # Cosine similarity = dot product / (norm(a) * norm(b))
+                dot_product = np.dot(emb, centroid)
+                norm_product = np.linalg.norm(emb) * np.linalg.norm(centroid)
+
+                if norm_product > 0:
+                    similarity = dot_product / norm_product
+                    similarities.append(max(0.0, similarity))  # Clamp to [0, 1]
+
+            # Motif coherence = mean similarity to centroid
+            metrics.motif_coherence = np.mean(similarities) if similarities else 0.5
+        else:
+            # Not enough embeddings available
+            metrics.motif_coherence = 0.5
 
         return metrics
 

@@ -15,6 +15,12 @@ class DictionaryBrowser:
     """Browse and inspect WORD_RECORD entries."""
 
     def __init__(self):
+        """
+        Initialize DictionaryBrowser.
+
+        No instance state needed - all methods use database sessions
+        for each operation to ensure thread-safety and fresh data.
+        """
         pass
 
     def get_word(self, lemma: str) -> Optional[WordRecord]:

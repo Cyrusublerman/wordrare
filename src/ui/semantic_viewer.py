@@ -14,6 +14,12 @@ class SemanticViewer:
     """View and explore concept graph."""
 
     def __init__(self):
+        """
+        Initialize SemanticViewer.
+
+        No instance state needed - all methods use database sessions
+        for each operation to ensure thread-safety and fresh data.
+        """
         pass
 
     def get_node(self, node_id: int) -> Optional[ConceptNode]:

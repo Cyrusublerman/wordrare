@@ -21,6 +21,12 @@ class WordRecordBuilder:
     """Builds unified WORD_RECORD entries from multiple data sources."""
 
     def __init__(self):
+        """
+        Initialize WordRecordBuilder.
+
+        No instance state needed - all methods use database sessions
+        for each operation to ensure thread-safety and fresh data.
+        """
         pass
 
     def build_word_record(self, lemma: str) -> Optional[dict]:

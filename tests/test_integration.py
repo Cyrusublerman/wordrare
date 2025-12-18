@@ -46,7 +46,7 @@ class TestEndToEndGeneration:
 
         assert poem is not None
         assert poem.text
-        assert poem.form_id == 'haiku'
+        assert poem.spec.form == 'haiku'
         assert poem.run_id
 
         # Should have 3 lines
@@ -63,7 +63,7 @@ class TestEndToEndGeneration:
 
         assert poem is not None
         assert poem.text
-        assert poem.form_id == 'sonnet'
+        assert poem.spec.form == 'sonnet'
 
         # Should have 14 lines
         lines = poem.text.strip().split('\n')
@@ -79,7 +79,7 @@ class TestEndToEndGeneration:
 
         assert poem is not None
         assert poem.text
-        assert poem.form_id == 'villanelle'
+        assert poem.spec.form == 'villanelle'
 
         # Should have 19 lines
         lines = poem.text.strip().split('\n')
@@ -310,15 +310,15 @@ class TestFormValidation:
         haiku = form_library.get_form('haiku')
 
         assert haiku.total_lines == 3
-        assert len(haiku.stanzas) == 1
-        assert haiku.stanzas[0].syllable_counts == [5, 7, 5]
+        assert len(haiku.stanza_specs) == 1
+        assert haiku.special_rules.get('syllable_pattern') == [5, 7, 5]
 
     def test_sonnet_structure(self, form_library):
         """Test sonnet structure."""
         sonnet = form_library.get_form('sonnet')
 
         assert sonnet.total_lines == 14
-        assert len(sonnet.stanzas) == 4  # 3 quatrains + 1 couplet
+        assert len(sonnet.stanza_specs) == 4  # 3 quatrains + 1 couplet
         assert sonnet.rhyme_pattern == 'ABAB CDCD EFEF GG'
 
     def test_villanelle_structure(self, form_library):
@@ -326,7 +326,7 @@ class TestFormValidation:
         villanelle = form_library.get_form('villanelle')
 
         assert villanelle.total_lines == 19
-        assert len(villanelle.stanzas) == 6  # 5 tercets + 1 quatrain
+        assert len(villanelle.stanza_specs) == 6  # 5 tercets + 1 quatrain
 
 
 class TestMeterEngine:
@@ -376,7 +376,7 @@ class TestSoundEngine:
         assert match is not None
         assert match.similarity >= 0.95  # Perfect rhyme threshold
 
-        logger.info(f"Rhyme: day/way = {match.similarity:.2%} ({match.classification})")
+        logger.info(f"Rhyme: day/way = {match.similarity:.2%} ({match.rhyme_type})")
 
     def test_slant_rhyme(self, sound_engine):
         """Test slant rhyme detection."""
@@ -385,7 +385,7 @@ class TestSoundEngine:
         assert match is not None
         # May be slant or no rhyme depending on phonetics
 
-        logger.info(f"Rhyme: love/move = {match.similarity:.2%} ({match.classification})")
+        logger.info(f"Rhyme: love/move = {match.similarity:.2%} ({match.rhyme_type})")
 
     def test_no_rhyme(self, sound_engine):
         """Test non-rhyming words."""

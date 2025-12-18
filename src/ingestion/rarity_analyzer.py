@@ -228,20 +228,28 @@ class RarityAnalyzer:
         logger.info(f"Analyzing rarity for {len(words)} words...")
 
         analyzed = 0
+        batch_size = 100
 
-        for word in tqdm(words, desc="Analyzing rarity"):
-            word_data = word_data_map.get(word)
-            rarity_data = self.analyze_word(word, word_data)
+        # Process in batches to avoid holding session too long
+        with get_session() as session:
+            for word in tqdm(words, desc="Analyzing rarity"):
+                word_data = word_data_map.get(word)
+                rarity_data = self.analyze_word(word, word_data)
 
-            with get_session() as session:
                 freq_profile = FreqProfile(**rarity_data)
                 session.add(freq_profile)
 
-            analyzed += 1
+                analyzed += 1
 
-            # Commit in batches
-            if analyzed % 100 == 0:
+                # Commit in batches
+                if analyzed % batch_size == 0:
+                    session.commit()
+                    logger.debug(f"Committed batch at {analyzed} words")
+
+            # Commit any remaining items
+            if analyzed % batch_size != 0:
                 session.commit()
+                logger.debug(f"Committed final batch")
 
         logger.info(f"Rarity analysis complete: {analyzed} words analyzed")
 

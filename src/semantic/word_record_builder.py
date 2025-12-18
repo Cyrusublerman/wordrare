@@ -131,12 +131,14 @@ class WordRecordBuilder:
 
         built = 0
         failed = 0
+        batch_size = 100
 
-        for word in tqdm(words, desc="Building word records"):
-            record_data = self.build_word_record(word)
+        # Process in batches with single session
+        with get_session() as session:
+            for word in tqdm(words, desc="Building word records"):
+                record_data = self.build_word_record(word)
 
-            if record_data:
-                with get_session() as session:
+                if record_data:
                     # Check if exists (in case of force_rebuild)
                     existing = session.query(WordRecord).filter_by(lemma=word).first()
 
@@ -149,14 +151,19 @@ class WordRecordBuilder:
                         word_record = WordRecord(**record_data)
                         session.add(word_record)
 
-                built += 1
-            else:
-                failed += 1
+                    built += 1
+                else:
+                    failed += 1
 
-            # Commit in batches
-            if (built + failed) % 100 == 0:
-                with get_session() as session:
+                # Commit in batches
+                if (built + failed) % batch_size == 0:
                     session.commit()
+                    logger.debug(f"Committed batch at {built + failed} words")
+
+            # Commit any remaining items
+            if (built + failed) % batch_size != 0:
+                session.commit()
+                logger.debug(f"Committed final batch")
 
         logger.info(f"WORD_RECORD building complete: {built} built, {failed} failed")
 

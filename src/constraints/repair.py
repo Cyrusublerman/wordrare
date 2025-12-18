@@ -230,13 +230,18 @@ class LineRepairer:
             Modified line or None
         """
         # Analyze current meter
-        analysis = self.meter_engine.analyze_line(
-            line,
-            target_spec.get('meter', 'iambic_pentameter')
-        )
+        meter_name = target_spec.get('meter', 'iambic_pentameter')
+        analysis = self.meter_engine.analyze_line(line, meter_name)
+
+        # Get expected syllables from meter pattern
+        meter_pattern = self.meter_engine.meter_patterns.get(meter_name)
+        if not meter_pattern:
+            return None
+
+        expected_syllables = meter_pattern.expected_syllables
 
         # If too many syllables, try removing articles
-        if analysis.syllable_count > analysis.meter_pattern.expected_syllables:
+        if analysis.syllable_count > expected_syllables:
             words = line.split()
 
             # Remove articles
@@ -246,7 +251,7 @@ class LineRepairer:
                 return ' '.join(filtered)
 
         # If too few syllables, try adding articles
-        elif analysis.syllable_count < analysis.meter_pattern.expected_syllables:
+        elif analysis.syllable_count < expected_syllables:
             words = line.split()
 
             # Add article before first noun (simple heuristic)

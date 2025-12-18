@@ -33,7 +33,7 @@ class GeneratedPoem:
         """Get poem as formatted text."""
         return '\n'.join(self.lines)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.text
 
     def to_dict(self) -> Dict:
@@ -175,7 +175,7 @@ class PoemGenerator:
         logger.debug("Global pass not yet implemented")
         return lines
 
-    def _save_generation_run(self, poem: GeneratedPoem):
+    def _save_generation_run(self, poem: GeneratedPoem) -> None:
         """Save generation run to database."""
         try:
             with get_session() as session:
@@ -240,7 +240,7 @@ class PoemGenerator:
         }
 
 
-def main():
+def main() -> None:
     """CLI for poem generation."""
     import argparse
 

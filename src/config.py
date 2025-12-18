@@ -67,3 +67,49 @@ DEFAULT_METRIC_WEIGHTS = {
     "R_layers": 0.10,
     "R_variation": 0.10,
 }
+
+
+def validate_api_keys(require_wordnik: bool = False,
+                      require_oxford: bool = False,
+                      require_merriam: bool = False) -> None:
+    """
+    Validate that required API keys are configured.
+
+    Args:
+        require_wordnik: Whether Wordnik API key is required
+        require_oxford: Whether Oxford API key is required
+        require_merriam: Whether Merriam-Webster API key is required
+
+    Raises:
+        ValueError: If required API keys are missing
+    """
+    missing_keys = []
+
+    if require_wordnik and not WORDNIK_API_KEY:
+        missing_keys.append("WORDNIK_API_KEY")
+
+    if require_oxford and not OXFORD_API_KEY:
+        missing_keys.append("OXFORD_API_KEY")
+
+    if require_merriam and not MERRIAM_WEBSTER_API_KEY:
+        missing_keys.append("MERRIAM_WEBSTER_API_KEY")
+
+    if missing_keys:
+        raise ValueError(
+            f"Missing required API keys: {', '.join(missing_keys)}. "
+            f"Please set these environment variables in your .env file or environment."
+        )
+
+
+def get_configured_apis() -> dict:
+    """
+    Get information about which APIs are configured.
+
+    Returns:
+        Dictionary with API availability status
+    """
+    return {
+        "wordnik": bool(WORDNIK_API_KEY),
+        "oxford": bool(OXFORD_API_KEY),
+        "merriam_webster": bool(MERRIAM_WEBSTER_API_KEY),
+    }

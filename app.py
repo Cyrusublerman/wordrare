@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, List, Dict
 import logging
 import sys
+import os
 
 # Configure logging
 logging.basicConfig(
@@ -25,14 +26,21 @@ app = FastAPI(
     version="0.1.0"
 )
 
+# Configure CORS - secure defaults, override with environment variable
+# For production, set CORS_ORIGINS to specific domains like "https://yourdomain.com,https://app.yourdomain.com"
+cors_origins_str = os.getenv("CORS_ORIGINS", "http://localhost:3000")
+cors_origins = [origin.strip() for origin in cors_origins_str.split(",")]
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
+
+logger.info(f"CORS configured with origins: {cors_origins}")
 
 # Import generation engine
 try:
@@ -83,7 +91,7 @@ class FormInfo(BaseModel):
 # API Routes
 
 @app.get("/")
-async def root():
+async def root() -> Dict:
     """Welcome endpoint with API information."""
     return {
         "name": "WordRare Poem Generator API",
@@ -100,7 +108,7 @@ async def root():
 
 
 @app.get("/health")
-async def health():
+async def health() -> Dict:
     """Health check endpoint for Railway."""
     if generator is None:
         raise HTTPException(status_code=503, detail="PoemGenerator not initialized")
@@ -113,7 +121,7 @@ async def health():
 
 
 @app.post("/generate", response_model=GenerateResponse)
-async def generate_poem(request: GenerateRequest):
+async def generate_poem(request: GenerateRequest) -> GenerateResponse:
     """
     Generate a poem based on the provided specification.
 
@@ -171,7 +179,7 @@ async def generate_poem(request: GenerateRequest):
 
 
 @app.get("/forms", response_model=List[str])
-async def list_forms():
+async def list_forms() -> List[str]:
     """
     List all available poetic forms.
 
@@ -190,7 +198,7 @@ async def list_forms():
 
 
 @app.get("/forms/{form_id}", response_model=FormInfo)
-async def get_form_info(form_id: str):
+async def get_form_info(form_id: str) -> FormInfo:
     """
     Get detailed information about a specific poetic form.
 
@@ -216,7 +224,7 @@ async def get_form_info(form_id: str):
 
 # Startup event
 @app.on_event("startup")
-async def startup_event():
+async def startup_event() -> None:
     """Log startup information."""
     logger.info("WordRare API starting up...")
     logger.info(f"Generator status: {'initialized' if generator else 'failed'}")
@@ -230,7 +238,7 @@ async def startup_event():
 
 # Shutdown event
 @app.on_event("shutdown")
-async def shutdown_event():
+async def shutdown_event() -> None:
     """Log shutdown information."""
     logger.info("WordRare API shutting down...")
 

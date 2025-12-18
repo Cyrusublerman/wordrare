@@ -356,7 +356,7 @@ Phase 5 (Docs) - Final phase:
 
 ### Phase 2: Metrics
 - [x] 2.1 Rhyme Stability Metric ✅ **COMPLETED 2025-12-17**
-- [ ] 2.2 Motif Coherence Metric
+- [x] 2.2 Motif Coherence Metric ✅ **COMPLETED 2025-12-17**
 - [x] 2.3 Technique Metrics ✅ **COMPLETED 2025-12-17**
 - [x] 2.4 Rhyme Divergence ✅ **COMPLETED 2025-12-17**
 - [ ] 2.5 Semantic & Affect Constraints
@@ -367,7 +367,7 @@ Phase 5 (Docs) - Final phase:
 - [ ] 3.3 Global Thematic Pass
 
 ### Phase 4: Polish
-- [ ] 4.1 Find-Rhymes CLI
+- [x] 4.1 Find-Rhymes CLI ✅ **COMPLETED 2025-12-17**
 - [ ] 4.2 UI Module Initialization
 
 ### Phase 5: Documentation
@@ -537,4 +537,61 @@ This plan provides incremental progress with clear milestones, testable outcomes
 **Next Recommended Actions:**
 1. Phase 3.2: Device Application (HIGH complexity, critical for quality)
 2. Phase 3.3: Global Thematic Pass (HIGH complexity, critical for quality)
-3. Phase 1.3: Semantic Tag Assignment (MEDIUM complexity, unlocks 2.2 and 2.5)
+3. Phase 1.3: Semantic Tag Assignment (MEDIUM complexity, unlocks 2.5)
+
+---
+
+### 2025-12-17: Phase 2.2 (Motif Coherence) & Phase 4.1 (Find-Rhymes CLI) ✅
+
+**Completed:**
+- **Phase 2.2: Motif Coherence Metric (MEDIUM complexity)**
+  - Replaced hardcoded 0.7 with real embedding-based calculation
+  - Computes semantic centroid of all word embeddings in the poem
+  - Calculates mean cosine similarity of each word to centroid
+  - Formula: `motif_coherence = mean(cosine_similarity(word_emb, centroid))`
+  - Measures how tightly clustered the poem's vocabulary is semantically
+  - Handles cases with insufficient embeddings gracefully (returns 0.5)
+  - Uses numpy for efficient vector operations
+
+- **Phase 4.1: Find-Rhymes CLI Enhancement (LOW complexity)**
+  - Implemented `find_rhymes_for_word()` method in SoundEngine
+  - Queries WordRecord database for rhyming words with filters:
+    * min_rarity / max_rarity for word selection
+    * rhyme_type filter (perfect, slant, any)
+    * Limit parameter for result count
+  - Optimized: queries max 1000 candidates, returns top 20 by default
+  - Updated CLI to display formatted table:
+    * Word name (20 chars)
+    * Rhyme type (12 chars)
+    * Similarity score (3 decimals)
+  - Sorts results by similarity score descending
+
+**Files Modified:**
+- `src/metrics/poem_metrics.py`:
+  - Updated `analyze_semantics()` method (lines 401-431)
+  - Added embedding extraction and centroid calculation
+  - Added cosine similarity computation loop
+  - Proper error handling for missing embeddings
+
+- `src/forms/sound_engine.py`:
+  - Added `find_rhymes_for_word()` method (lines 153-211)
+  - Database query with rarity filters
+  - Updated CLI handler (lines 463-475)
+  - Formatted output table
+
+**Results:**
+- **Phase 2 is now 80% complete** (4 of 5 tasks done)
+- Motif coherence provides meaningful semantic quality metric
+- Find-rhymes CLI fully functional for word exploration
+- Both features improve system usability and poem evaluation
+
+**Statistics:**
+- Phase 2 progress: 4/5 tasks (80% complete)
+- Phase 4 progress: 1/2 tasks (50% complete)
+- Overall systematic completion: 9 of 16 tasks (56%)
+- Lines of code added: ~100
+
+**Next Priority Tasks:**
+1. Phase 2.5: Semantic & Affect Constraints (unlocked by Phase 1.3)
+2. Phase 4.2: UI Module Initialization (LOW complexity, quick win)
+3. Phase 3.2: Device Application (HIGH complexity, critical quality feature)

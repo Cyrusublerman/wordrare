@@ -7,10 +7,11 @@ Implements repair strategies from BuildGuide Section 3.3.
 import logging
 from typing import List, Optional, Dict, Tuple
 from enum import Enum
+import numpy as np
 
 from .constraint_model import Constraint, ConstraintModel, SteeringPolicy
 from ..forms import MeterEngine, SoundEngine
-from ..database import WordRecord, get_session
+from ..database import WordRecord, Semantics, get_session
 
 logger = logging.getLogger(__name__)
 
@@ -262,17 +263,154 @@ class LineRepairer:
 
     def _semantic_correction(self, line: str, target_spec: Dict) -> Optional[str]:
         """
-        Adjust semantic alignment.
+        Adjust semantic alignment by substituting words.
+
+        Identifies words with low semantic alignment to theme and
+        substitutes them with semantically similar words that better
+        align with the target theme.
 
         Args:
             line: Original line
-            target_spec: Target specifications
+            target_spec: Target specifications (must include semantic_palette)
 
         Returns:
-            Modified line or None
+            Modified line with improved semantic alignment, or None if no improvement possible
         """
-        # Placeholder - would implement semantic coherence checking
-        # and word substitution to improve theme/affect alignment
+        semantic_palette = target_spec.get('semantic_palette')
+        if not semantic_palette or 'word_pools' not in semantic_palette:
+            return None
+
+        # Extract words from line
+        words = line.split()
+        if len(words) < 2:
+            return None
+
+        # Get theme word embeddings from palette
+        theme_words = []
+        for motif_words in semantic_palette.get('word_pools', {}).values():
+            theme_words.extend(motif_words[:10])
+
+        if not theme_words:
+            return None
+
+        # Get theme embeddings
+        theme_embeddings = []
+        with get_session() as session:
+            for word in theme_words[:30]:
+                sem = session.query(Semantics).filter_by(lemma=word.lower()).first()
+                if sem and sem.embedding:
+                    theme_embeddings.append(np.array(sem.embedding))
+
+        if len(theme_embeddings) < 5:
+            return None  # Not enough theme data
+
+        # Compute theme centroid
+        theme_centroid = np.mean(theme_embeddings, axis=0)
+
+        # Analyze each word's semantic alignment
+        word_scores = []
+        with get_session() as session:
+            for idx, word in enumerate(words):
+                clean_word = word.strip('.,!?;:\'\"').lower()
+                if not clean_word:
+                    continue
+
+                sem = session.query(Semantics).filter_by(lemma=clean_word).first()
+                if not sem or not sem.embedding:
+                    word_scores.append((idx, 0.5, None))  # Neutral score for unknown words
+                    continue
+
+                # Compute cosine similarity to theme centroid
+                word_emb = np.array(sem.embedding)
+                dot_product = np.dot(word_emb, theme_centroid)
+                norm_product = np.linalg.norm(word_emb) * np.linalg.norm(theme_centroid)
+
+                if norm_product > 0:
+                    similarity = dot_product / norm_product
+                else:
+                    similarity = 0.5
+
+                word_scores.append((idx, similarity, clean_word))
+
+        # Find word with lowest semantic alignment (but skip first and last words to preserve structure)
+        substitutable = [ws for ws in word_scores if 0 < ws[0] < len(words) - 1 and ws[2] is not None]
+        if not substitutable:
+            return None
+
+        substitutable.sort(key=lambda x: x[1])  # Sort by similarity (lowest first)
+        worst_idx, worst_score, worst_word = substitutable[0]
+
+        # Only substitute if alignment is poor (< 0.4)
+        if worst_score >= 0.4:
+            return None
+
+        # Find a better alternative word
+        with get_session() as session:
+            # Get original word info for constraints
+            original_sem = session.query(Semantics).filter_by(lemma=worst_word).first()
+            original_record = session.query(WordRecord).filter_by(lemma=worst_word).first()
+
+            if not original_record:
+                return None
+
+            # Find candidates with similar POS and syllable count
+            candidates = session.query(WordRecord).join(
+                Semantics, WordRecord.lemma == Semantics.lemma
+            ).filter(
+                WordRecord.pos_primary == original_record.pos_primary,
+                WordRecord.syllable_count == original_record.syllable_count,
+                WordRecord.lemma != worst_word,
+                Semantics.embedding.isnot(None)
+            ).limit(50).all()
+
+            if not candidates:
+                return None
+
+            # Score each candidate by theme alignment
+            best_candidate = None
+            best_alignment = worst_score
+
+            for candidate in candidates:
+                cand_sem = session.query(Semantics).filter_by(lemma=candidate.lemma).first()
+                if not cand_sem or not cand_sem.embedding:
+                    continue
+
+                # Compute alignment with theme
+                cand_emb = np.array(cand_sem.embedding)
+                dot_product = np.dot(cand_emb, theme_centroid)
+                norm_product = np.linalg.norm(cand_emb) * np.linalg.norm(theme_centroid)
+
+                if norm_product > 0:
+                    alignment = dot_product / norm_product
+
+                    if alignment > best_alignment:
+                        best_alignment = alignment
+                        best_candidate = candidate.lemma
+
+            if best_candidate and best_alignment > worst_score + 0.1:  # Require meaningful improvement
+                # Substitute the word
+                modified_words = words.copy()
+                original_word = words[worst_idx]
+
+                # Preserve capitalization
+                if original_word[0].isupper():
+                    best_candidate = best_candidate.capitalize()
+
+                # Preserve punctuation
+                punctuation = ''
+                for char in original_word[::-1]:
+                    if char in '.,!?;:\'\"':
+                        punctuation = char + punctuation
+                    else:
+                        break
+
+                modified_words[worst_idx] = best_candidate + punctuation
+
+                modified_line = ' '.join(modified_words)
+                logger.debug(f"Semantic correction: '{worst_word}' -> '{best_candidate}' "
+                           f"(alignment {worst_score:.2f} -> {best_alignment:.2f})")
+                return modified_line
+
         return None
 
     def _guess_pos(self, word: str) -> str:

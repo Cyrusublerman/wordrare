@@ -14,6 +14,7 @@ from .theme_selector import ThemeSelector
 from .scaffolding import Scaffolder
 from .line_realizer import LineRealizer
 from .device_applicator import DeviceApplicator
+from .global_thematic_pass import GlobalThematicAnalyzer
 
 logger = logging.getLogger(__name__)
 
@@ -107,7 +108,7 @@ class PoemGenerator:
 
         # Global pass (thematic smoothing)
         logger.info("Applying global pass...")
-        lines = self._global_pass(lines, spec)
+        lines = self._global_pass(lines, spec, semantic_palette)
 
         # Create poem object
         poem = GeneratedPoem(
@@ -146,27 +147,21 @@ class PoemGenerator:
         applicator = DeviceApplicator(spec, semantic_palette)
         return applicator.apply_devices(lines)
 
-    def _global_pass(self, lines: List[str], spec: GenerationSpec) -> List[str]:
+    def _global_pass(self, lines: List[str], spec: GenerationSpec,
+                    semantic_palette: Dict) -> List[str]:
         """
         Perform global thematic smoothing.
 
         Args:
             lines: Original lines
             spec: Generation spec
+            semantic_palette: Semantic palette
 
         Returns:
-            Modified lines
+            Modified lines with improved thematic progression
         """
-        # Placeholder for global pass
-        # In full implementation, would:
-        # - Analyze thematic progression
-        # - Identify weak transitions
-        # - Adjust word choices for coherence
-        # - Balance emotional intensity
-        # - Ensure contrasts are deliberate
-
-        logger.debug("Global pass not yet implemented")
-        return lines
+        analyzer = GlobalThematicAnalyzer(spec, semantic_palette)
+        return analyzer.apply_global_pass(lines)
 
     def _save_generation_run(self, poem: GeneratedPoem) -> None:
         """Save generation run to database."""

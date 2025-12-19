@@ -13,6 +13,7 @@ from .generation_spec import GenerationSpec
 from .theme_selector import ThemeSelector
 from .scaffolding import Scaffolder
 from .line_realizer import LineRealizer
+from .device_applicator import DeviceApplicator
 
 logger = logging.getLogger(__name__)
 
@@ -140,18 +141,10 @@ class PoemGenerator:
             semantic_palette: Semantic palette
 
         Returns:
-            Modified lines
+            Modified lines with devices applied
         """
-        # Placeholder for device application
-        # In full implementation, would add:
-        # - Enjambment (break syntax across lines)
-        # - Caesura (mid-line pauses)
-        # - Internal rhyme
-        # - Metaphor bridges (cross-domain connections)
-        # - Motif recurrence
-
-        logger.debug("Device application not yet implemented")
-        return lines
+        applicator = DeviceApplicator(spec, semantic_palette)
+        return applicator.apply_devices(lines)
 
     def _global_pass(self, lines: List[str], spec: GenerationSpec) -> List[str]:
         """
